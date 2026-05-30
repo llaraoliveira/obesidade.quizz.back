@@ -298,28 +298,32 @@ function authenticateToken(req, res, next) {
 
 app.get('/api/questions', (req, res) => {
   const difficulty = req.query.difficulty;
-  
+
   let query = 'SELECT * FROM questions';
   let params = [];
-  
+
   if (difficulty && ['facil', 'medio', 'dificil'].includes(difficulty)) {
     query += ' WHERE difficulty = ?';
     params.push(difficulty);
   }
-  
+
   query += ' ORDER BY created_at DESC';
-  
+
   db.all(query, params, (err, rows) => {
     if (err) {
       console.error('Erro ao buscar perguntas:', err);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-    
-    const questions = rows.map(row => ({
-      ...row,
-      alternatives: row.alternatives
-    }));
-    
+
+    const questions = rows.map(row => {
+      let alternatives = row.alternatives;
+      try {
+        alternatives = JSON.parse(alternatives);
+        if (!Array.isArray(alternatives)) alternatives = JSON.parse(alternatives);
+      } catch {}
+      return { ...row, alternatives };
+    });
+
     res.json({ success: true, questions });
   });
 });
@@ -676,12 +680,16 @@ app.get('/api/backoffice/questions', authenticateToken, (req, res) => {
       console.error('Erro ao buscar perguntas:', err);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-    
-    const questions = rows.map(row => ({
-      ...row,
-      alternatives: row.alternatives
-    }));
-    
+
+    const questions = rows.map(row => {
+      let alternatives = row.alternatives;
+      try {
+        alternatives = JSON.parse(alternatives);
+        if (!Array.isArray(alternatives)) alternatives = JSON.parse(alternatives);
+      } catch {}
+      return { ...row, alternatives };
+    });
+
     res.json({ success: true, questions });
   });
 });
